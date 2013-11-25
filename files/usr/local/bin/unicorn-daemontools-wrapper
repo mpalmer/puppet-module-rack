@@ -1,0 +1,40 @@
+#!/bin/bash
+
+#              THIS FILE IS AUTOMATICALLY DISTRIBUTED BY PUPPET
+#                   ANY LOCAL CHANGES WILL BE OVERWRITTEN!
+
+if [ $TERM == "dumb" ]; then
+	export TERM="xterm"
+fi
+
+# Sanity checks
+[ $# -gt 0 ] || {
+	echo "$0: missing Unicorn binary operand" >&2
+	exit 1
+}
+
+# We want Unicorn to run in a separate process group.
+set -m
+
+"$@" &
+pid=$!
+
+# On TERM, we KILL the master process, then send QUIT to all the workers.
+trap "kill -KILL $pid; kill -QUIT -$pid; exit 0" TERM
+
+# Most other signals just go to the master.
+for signal in HUP INT QUIT TRAP USR1 USR2 ALRM; do
+	trap "signalled=:; kill -$signal $pid" $signal
+done
+
+rc=0
+
+# Loop while wait returns due to a signal.
+signalled=:
+while [ -n "$signalled" ]; do
+	signalled=
+	wait $pid
+	rc=$?
+done
+
+exit $rc
