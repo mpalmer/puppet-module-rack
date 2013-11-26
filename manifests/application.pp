@@ -117,11 +117,11 @@ define rack::application(
 	}
 	
 	daemontools::service { $name:
-		command     => "bundle exec unicorn-daemontools-wrapper $unicorn -E none $listen_opt",
-		user        => $user,
-		control     => "allah",
-		directory   => $rootdir,
-		environment => $environment,
-		pre_command => $use_ruby_version,
+		command      => "bundle exec unicorn-daemontools-wrapper $unicorn -E none $listen_opt",
+		user         => $user,
+		sudo_control => "allah",
+		directory    => $rootdir,
+		environment  => $environment,
+		pre_command  => $use_ruby_version,
 	}
 }
