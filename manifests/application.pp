@@ -67,6 +67,11 @@
 #     feel free to set this parameter to `true` to get all the dodgy-rails
 #     goodness.
 #
+#  * `allah_group` (string; optional; default `undef`)
+#
+#     Nominate an allah group to make this rack application's daemontools
+#     service a part of.
+#
 define rack::application(
 	$user,
 	$rootdir,
@@ -74,54 +79,74 @@ define rack::application(
 	$ruby_version    = "system",
 	$concurrency     = 1,
 	$old_rails_hacks = false,
-	$environment     = {}
+	$environment     = {},
+	$allah_group     = undef
 ) {
 	include rack::unicorn_daemontools_wrapper
-	
+	include chruby::install
+
 	if $listen {
 		$listen_opt = "-l $listen"
 	} else {
 		$listen_opt = "-l /etc/service/${name}/tmp/app.sock"
 	}
-	
+
+	$rack_application_workers = $concurrency
+
 	file {
 		"/etc/service/${name}/tmp":
 			ensure  => directory,
 			mode    => 0710,
 			owner   => $user,
-			group   => "www-data",
-			require => Daemontools::Service[$name]
+			group   => "www-data";
+		"/etc/service/${name}/unicorn.conf":
+			ensure  => file,
+			content => template("rack/unicorn.conf"),
+			mode    => 0440,
+			owner   => $user,
+			notify  => Exec["daemontools/service/refresh:${name}"];
 	}
-	
+
+	$rubies_path = {"RUBIES_PATH" => "/usr/local/lib/rubies"}
+
 	case $ruby_version {
 		"system": {
-			$use_ruby_version = ""
+			$ruby_version_spec = "system"
+			$full_environment  = $environment
 		}
 		"application": {
 			include ruby_build::base
-			$use_ruby_version = "chruby"  # chruby will work out what to do based on .ruby-version
+			$quoted_ruby_version_file = shellquote("${rootdir}/.ruby-version")
+			$ruby_version_spec = "\"$(cat ${quoted_ruby_version_file})\""
+
+			$pre_commands = [
+				"ruby-build-wrapper ${ruby_version_spec}",
+			]
+			$full_environment = merge($environment, $rubies_path)
 		}
 		default: {
 			ruby_build::install { "rack::application/$name":
 				definition => $ruby_version
 			}
-			
-			$use_ruby_version = "chruby ${ruby_version}"
+
+			$ruby_version_spec = $ruby_version
+			$full_environment = merge($environment, $rubies_path)
 		}
 	}
-	
+
 	if $old_rails_hacks {
 		$unicorn = "unicorn_rails"
 	} else {
 		$unicorn = "unicorn"
 	}
-	
+
 	daemontools::service { $name:
-		command      => "bundle exec unicorn-daemontools-wrapper $unicorn -E none $listen_opt",
+		command      => "chruby-exec ${ruby_version_spec} -- exec bundle exec unicorn-daemontools-wrapper $unicorn -E none $listen_opt -c /etc/service/${name}/unicorn.conf",
 		user         => $user,
 		sudo_control => "allah",
 		directory    => $rootdir,
-		environment  => $environment,
-		pre_command  => $use_ruby_version,
+		environment  => $full_environment,
+		pre_command  => $pre_commands,
+		allah_group  => $allah_group,
 	}
 }
