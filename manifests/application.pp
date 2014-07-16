@@ -104,7 +104,7 @@ define rack::application(
 			content => template("rack/unicorn.conf"),
 			mode    => 0440,
 			owner   => $user,
-			notify  => Exec["daemontools/service/refresh:${name}"];
+			notify  => Exec["daemontools/service/restart:${name}"];
 	}
 
 	$rubies_path = {"RUBIES_PATH" => "/usr/local/lib/rubies"}
