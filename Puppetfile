@@ -1,7 +1,7 @@
-mod 'anchor/chruby',
-    :git => "git://github.com/anchor/chruby",
-    :ref => "puppet/v1"
+mod 'mpalmer/chruby',
+    :git => "git://github.com/mpalmer/puppet-module-chruby",
+    :ref => "v1"
 
-mod 'anchor/ruby_build',
-    :git => "git://github.com/anchor/ruby-build",
+mod 'mpalmer/ruby_build',
+    :git => "git://github.com/mpalmer/puppet-module-ruby-build",
     :ref => "puppet"
