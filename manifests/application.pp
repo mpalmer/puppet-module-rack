@@ -72,6 +72,11 @@
 #     Nominate an allah group to make this rack application's daemontools
 #     service a part of.
 #
+#  * `request_timeout` (integer; optional; default `60`)
+#
+#     Specify an amount of time that a request is allowed to run for before
+#     being forcibly terminated by the master process.
+#
 define rack::application(
 	$user,
 	$rootdir,
@@ -80,7 +85,8 @@ define rack::application(
 	$concurrency     = 1,
 	$old_rails_hacks = false,
 	$environment     = {},
-	$allah_group     = undef
+	$allah_group     = undef,
+	$request_timeout = 60,
 ) {
 	include rack::unicorn_daemontools_wrapper
 	include chruby::install
@@ -92,6 +98,7 @@ define rack::application(
 	}
 
 	$rack_application_workers = $concurrency
+	$rack_application_timeout = $request_timeout
 
 	file {
 		"/etc/service/${name}/tmp":
