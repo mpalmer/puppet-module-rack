@@ -103,13 +103,13 @@ define rack::application(
 	file {
 		"/etc/service/${name}/tmp":
 			ensure  => directory,
-			mode    => 0710,
+			mode    => "0710",
 			owner   => $user,
 			group   => "www-data";
 		"/etc/service/${name}/unicorn.conf":
 			ensure  => file,
 			content => template("rack/unicorn.conf"),
-			mode    => 0440,
+			mode    => "0440",
 			owner   => $user,
 			notify  => Exec["daemontools/service/restart:${name}"];
 	}
